@@ -249,12 +249,27 @@ function PostModal({ post, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backdropFilter: "blur(4px)", animation: "fadeIn 0.2s ease" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, maxWidth: 480, width: "100%", maxHeight: "85vh", overflow: "auto", animation: "slideUp 0.3s ease" }}>
         <div style={{ position: "relative" }}>
-          <img src={post.imageUrl || ""} alt={post.name}
-            style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: "16px 16px 0 0", display: "block" }} />
-          <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.5)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+          {/* Gradient placeholder header */}
+          {(() => {
+            const [g1, g2] = getGradient(post.name || post.id);
+            return (
+              <div style={{
+                width: "100%", aspectRatio: "4/5",
+                background: `linear-gradient(145deg, ${g1}, ${g2})`,
+                borderRadius: "16px 16px 0 0",
+                display: "flex", alignItems: "center", justifyContent: "center"
+              }}>
+                <div style={{ textAlign: "center", padding: 20 }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>📍</div>
+                  <div style={{ color: "#fff", fontSize: 16, fontWeight: 500, textShadow: "0 1px 3px rgba(0,0,0,0.2)", lineHeight: 1.4 }}>{post.name}</div>
+                  {post.cuisine && <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 8, background: "rgba(0,0,0,0.15)", padding: "3px 12px", borderRadius: 20, display: "inline-block" }}>{post.cuisine}</div>}
+                </div>
+              </div>
+            );
+          })()}
+          <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.3)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}>✕</button>
           <div style={{ position: "absolute", bottom: 12, left: 12, display: "flex", gap: 6 }}>
-            <span style={{ background: "rgba(0,0,0,0.6)", color: "#fff", fontSize: 11, padding: "4px 10px", borderRadius: 20 }}>{post.date}</span>
-            {post.cuisine && <span style={{ background: "rgba(232,93,58,0.85)", color: "#fff", fontSize: 11, padding: "4px 10px", borderRadius: 20, fontWeight: 400 }}>{post.cuisine}</span>}
+            <span style={{ background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 11, padding: "4px 10px", borderRadius: 20 }}>{post.date}</span>
           </div>
         </div>
         <div style={{ padding: "18px 20px 22px" }}>
@@ -298,45 +313,69 @@ function PostModal({ post, onClose }) {
   );
 }
 
+// Gradient palettes for placeholder cards
+const GRADIENTS = [
+  ["#f8b4a0", "#e85d3a"], ["#a8d8b0", "#4a9b7f"], ["#b8b0e8", "#6b5ce7"],
+  ["#f8d4a0", "#d4a259"], ["#a0c8d8", "#2e86ab"], ["#e8a0b0", "#c23b22"],
+  ["#c8d8a0", "#7a9e50"], ["#d8c0a8", "#8b6914"], ["#a8c0e8", "#4a6fa5"],
+  ["#e8c0d8", "#a05080"],
+];
+
+function getGradient(str) {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  return GRADIENTS[Math.abs(hash) % GRADIENTS.length];
+}
+
 function GridCell({ post, onClick, index }) {
-  const [loaded, setLoaded] = useState(false);
   const [hover, setHover] = useState(false);
+  const [g1, g2] = getGradient(post.name || post.id);
   return (
     <div onClick={() => onClick(post)} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ position: "relative", paddingBottom: "125%", cursor: "pointer", overflow: "hidden", background: "#f0ebe5", animation: `fadeIn 0.35s ease ${Math.min(index * 0.03, 0.4)}s both` }}>
-      <img src={post.imageUrl || ""} alt={post.name} loading="lazy" onLoad={() => setLoaded(true)}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: loaded ? 1 : 0, transition: "opacity 0.4s, transform 0.3s", transform: hover ? "scale(1.04)" : "scale(1)" }} />
+      style={{
+        position: "relative", paddingBottom: "125%", cursor: "pointer", overflow: "hidden",
+        background: `linear-gradient(145deg, ${g1}, ${g2})`,
+        animation: `fadeIn 0.35s ease ${Math.min(index * 0.03, 0.4)}s both`,
+        transition: "transform 0.2s",
+        transform: hover ? "scale(1.02)" : "scale(1)"
+      }}>
 
-      {/* Always-visible gradient + name tag at bottom */}
-      {loaded && (
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(transparent 45%, rgba(0,0,0,0.68) 100%)",
-          display: "flex", flexDirection: "column", justifyContent: "flex-end",
-          padding: "0 6px 6px"
-        }}>
+      {/* Content overlay */}
+      <div style={{
+        position: "absolute", inset: 0,
+        display: "flex", flexDirection: "column", justifyContent: "space-between",
+        padding: "10px 8px"
+      }}>
+        {/* Top: cuisine badge */}
+        {post.cuisine && (
           <div style={{
-            display: "inline-flex", alignItems: "center", gap: 3,
-            background: "rgba(255,255,255,0.15)",
-            backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-            border: "1px solid rgba(255,255,255,0.25)",
-            borderRadius: 20, padding: "3px 8px 3px 5px",
-            maxWidth: "100%", overflow: "hidden"
-          }}>
-            <span style={{ fontSize: 9, flexShrink: 0 }}>📍</span>
-            <span style={{ color: "#fff", fontSize: 10, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textShadow: "0 1px 2px rgba(0,0,0,0.4)" }}>{post.name}</span>
-          </div>
+            alignSelf: "flex-start",
+            background: "rgba(0,0,0,0.25)", color: "#fff",
+            fontSize: 9, padding: "2px 7px", borderRadius: 10, fontWeight: 400
+          }}>{post.cuisine}</div>
+        )}
+        <div style={{ flex: 1 }} />
+
+        {/* Bottom: name tag */}
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 3,
+          background: "rgba(255,255,255,0.22)",
+          backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+          border: "1px solid rgba(255,255,255,0.3)",
+          borderRadius: 20, padding: "3px 8px 3px 5px", maxWidth: "100%"
+        }}>
+          <span style={{ fontSize: 9, flexShrink: 0 }}>📍</span>
+          <span style={{
+            color: "#fff", fontSize: 10, fontWeight: 500,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            textShadow: "0 1px 3px rgba(0,0,0,0.3)"
+          }}>{post.name}</span>
         </div>
-      )}
+      </div>
 
-      {/* cuisine badge top-left */}
-      {post.cuisine && loaded && (
-        <div style={{ position: "absolute", top: 6, left: 6, background: "rgba(0,0,0,0.52)", color: "#fff", fontSize: 9, padding: "2px 7px", borderRadius: 10, fontWeight: 400, letterSpacing: 0.3 }}>{post.cuisine}</div>
-      )}
-
-      {/* skeleton shimmer while loading */}
+      {/* skeleton shimmer on load */}
       {!loaded && (
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(90deg, #f0ebe5 25%, #e8e2db 50%, #f0ebe5 75%)", backgroundSize: "200% 100%", animation: "shimmer 1.4s infinite" }} />
+        <div style={{ position: "absolute", inset: 0, opacity: 0 }} />
       )}
     </div>
   );
