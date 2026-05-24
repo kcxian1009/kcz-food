@@ -255,7 +255,18 @@ export default function App() {
   }, [modalPost]);
 
   const cities = Object.keys(MOCK_DATA);
-  const taiwanCities = ["高雄吃痣","台南吃痣","台中吃痣","台北吃痣"].filter(c => cities.includes(c));
+  // Auto-detect all cities from real IG data, sorted S→N for taiwan
+  const TAIWAN_CITY_ORDER = ["高雄吃痣","台南吃痣","嘉義吃痣","台中吃痣","彰化吃痣","雲林吃痣","南投吃痣","苗栗吃痣","新竹吃痣","桃園吃痣","新北吃痣","台北吃痣","基隆吃痣","宜蘭吃痣","花蓮吃痣","台東吃痣","屏東吃痣","澎湖吃痣","金門吃痣"];
+  const taiwanCities = cities
+    .filter(c => MOCK_DATA[c].category === "taiwan")
+    .sort((a, b) => {
+      const ai = TAIWAN_CITY_ORDER.indexOf(a);
+      const bi = TAIWAN_CITY_ORDER.indexOf(b);
+      if (ai === -1 && bi === -1) return 0;
+      if (ai === -1) return 1;
+      if (bi === -1) return -1;
+      return ai - bi;
+    });
   const overseasCities = cities.filter(c => MOCK_DATA[c].category === "overseas");
   const deliveryCities = cities.filter(c => MOCK_DATA[c].category === "delivery");
 
