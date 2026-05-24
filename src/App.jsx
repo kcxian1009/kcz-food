@@ -176,7 +176,63 @@ function getGradient(str) {
 
 function GridCell({ post, onClick, index }) {
   const [hover, setHover] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const [g1, g2] = getGradient(post.name || post.id);
+  const showGradient = !post.imageUrl || imgError;
+
+  return (
+    <div onClick={() => onClick(post)} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{
+        position: "relative", paddingBottom: "125%", cursor: "pointer", overflow: "hidden",
+        background: `linear-gradient(145deg, ${g1}, ${g2})`,
+        animation: `fadeIn 0.35s ease ${Math.min(index * 0.03, 0.4)}s both`,
+        transition: "transform 0.2s",
+        transform: hover ? "scale(1.02)" : "scale(1)"
+      }}>
+
+      {/* Real IG image - try to load, fallback to gradient */}
+      {post.imageUrl && !imgError && (
+        <img src={post.imageUrl} alt={post.name} loading="lazy"
+          onError={() => setImgError(true)}
+          style={{
+            position: "absolute", inset: 0, width: "100%", height: "100%",
+            objectFit: "cover", transition: "opacity 0.4s"
+          }} />
+      )}
+
+      {/* Content overlay */}
+      <div style={{
+        position: "absolute", inset: 0,
+        background: showGradient ? "none" : "linear-gradient(transparent 45%, rgba(0,0,0,0.65) 100%)",
+        display: "flex", flexDirection: "column", justifyContent: "space-between",
+        padding: "10px 8px"
+      }}>
+        {post.cuisine && (
+          <div style={{
+            alignSelf: "flex-start",
+            background: "rgba(0,0,0,0.28)", color: "#fff",
+            fontSize: 9, padding: "2px 7px", borderRadius: 10, fontWeight: 400
+          }}>{post.cuisine}</div>
+        )}
+        <div style={{ flex: 1 }} />
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 3,
+          background: "rgba(255,255,255,0.18)",
+          backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+          border: "1px solid rgba(255,255,255,0.28)",
+          borderRadius: 20, padding: "3px 8px 3px 5px", maxWidth: "100%"
+        }}>
+          <span style={{ fontSize: 9, flexShrink: 0 }}>📍</span>
+          <span style={{
+            color: "#fff", fontSize: 10, fontWeight: 500,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            textShadow: "0 1px 3px rgba(0,0,0,0.4)"
+          }}>{post.name}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
   return (
     <div onClick={() => onClick(post)} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
@@ -220,10 +276,6 @@ function GridCell({ post, onClick, index }) {
         </div>
       </div>
 
-      {/* skeleton shimmer on load */}
-      {!loaded && (
-        <div style={{ position: "absolute", inset: 0, opacity: 0 }} />
-      )}
     </div>
   );
 }
