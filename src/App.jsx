@@ -100,24 +100,22 @@ function PostModal({ post, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backdropFilter: "blur(4px)", animation: "fadeIn 0.2s ease" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, maxWidth: 480, width: "100%", maxHeight: "85vh", overflow: "auto", animation: "slideUp 0.3s ease" }}>
         <div style={{ position: "relative" }}>
-          {/* Gradient placeholder header */}
-          {(() => {
-            const [g1, g2] = getGradient(post.name || post.id);
-            return (
-              <div style={{
-                width: "100%", aspectRatio: "4/5",
-                background: `linear-gradient(145deg, ${g1}, ${g2})`,
-                borderRadius: "16px 16px 0 0",
-                display: "flex", alignItems: "center", justifyContent: "center"
-              }}>
-                <div style={{ textAlign: "center", padding: 20 }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>📍</div>
-                  <div style={{ color: "#fff", fontSize: 16, fontWeight: 500, textShadow: "0 1px 3px rgba(0,0,0,0.2)", lineHeight: 1.4 }}>{post.name}</div>
-                  {post.cuisine && <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 8, background: "rgba(0,0,0,0.15)", padding: "3px 12px", borderRadius: 20, display: "inline-block" }}>{post.cuisine}</div>}
-                </div>
+          {post.imageUrl ? (
+            <img src={post.imageUrl} alt={post.name}
+              style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: "16px 16px 0 0", display: "block" }}
+              onError={e => { e.target.style.display = "none"; }} />
+          ) : (
+            <div style={{
+              width: "100%", aspectRatio: "3/2",
+              background: "#f8f4f0", borderRadius: "16px 16px 0 0",
+              display: "flex", alignItems: "center", justifyContent: "center", padding: 24
+            }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 36, marginBottom: 10 }}>📍</div>
+                <div style={{ fontSize: 16, fontWeight: 500, color: "#555", lineHeight: 1.4 }}>{post.name}</div>
               </div>
-            );
-          })()}
+            </div>
+          )}
           <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.3)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2 }}>✕</button>
           <div style={{ position: "absolute", bottom: 12, left: 12, display: "flex", gap: 6 }}>
             <span style={{ background: "rgba(0,0,0,0.3)", color: "#fff", fontSize: 11, padding: "4px 10px", borderRadius: 20 }}>{post.date}</span>
@@ -147,7 +145,14 @@ function PostModal({ post, onClose }) {
           </div>
 
           {post.hours && <p style={{ margin: "0 0 12px", fontSize: 12, color: "#aaa" }}>🕐 {post.hours}</p>}
-          <p style={{ margin: "0 0 14px", fontSize: 14, color: "#444", lineHeight: 1.7 }}>{post.caption}</p>
+          <p style={{ margin: "0 0 14px", fontSize: 14, color: "#444", lineHeight: 1.7 }}>{
+            // Clean caption: remove KAOHSIUNG|地名| prefix and trim
+            (post.caption || "")
+              .replace(/^[A-Z|｜\s]*[高台屏嘉新桃花宜苗彰雲南投澎金基]\S*[區市|｜]\s*/g, "")
+              .replace(/^KAOHSIUNG[^\n]*/i, "")
+              .trim()
+              .substring(0, 200)
+          }</p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
             {post.items.map((it, i) => <span key={i} style={{ background: "#f8f4f0", color: "#8B6914", fontSize: 12, padding: "5px 12px", borderRadius: 20, fontWeight: 400 }}>{it}</span>)}
           </div>
@@ -182,58 +187,82 @@ function GridCell({ post, onClick, index }) {
   const [hover, setHover] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [g1, g2] = getGradient(post.name || post.id);
-  const showGradient = !post.imageUrl || imgError;
+  const hasImage = post.imageUrl && !imgError;
 
   return (
     <div onClick={() => onClick(post)} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{
         position: "relative", paddingBottom: "125%", cursor: "pointer", overflow: "hidden",
-        background: `linear-gradient(145deg, ${g1}, ${g2})`,
+        background: hasImage ? "#f0ebe5" : "#fff",
+        border: hasImage ? "none" : "1px solid #eee",
         animation: `fadeIn 0.35s ease ${Math.min(index * 0.03, 0.4)}s both`,
-        transition: "transform 0.2s",
-        transform: hover ? "scale(1.02)" : "scale(1)"
+        transition: "transform 0.2s, box-shadow 0.2s",
+        transform: hover ? "scale(1.02)" : "scale(1)",
+        boxShadow: hover && !hasImage ? "0 4px 16px rgba(0,0,0,0.08)" : "none"
       }}>
 
-      {/* Real IG image - try to load, fallback to gradient */}
-      {post.imageUrl && !imgError && (
+      {/* Real IG image */}
+      {hasImage && (
         <img src={post.imageUrl} alt={post.name} loading="lazy"
           onError={() => setImgError(true)}
-          style={{
-            position: "absolute", inset: 0, width: "100%", height: "100%",
-            objectFit: "cover", transition: "opacity 0.4s"
-          }} />
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
       )}
 
-      {/* Content overlay */}
-      <div style={{
-        position: "absolute", inset: 0,
-        background: showGradient ? "none" : "linear-gradient(transparent 45%, rgba(0,0,0,0.65) 100%)",
-        display: "flex", flexDirection: "column", justifyContent: "space-between",
-        padding: "10px 8px"
-      }}>
-        {post.cuisine && (
-          <div style={{
-            alignSelf: "flex-start",
-            background: "rgba(0,0,0,0.28)", color: "#fff",
-            fontSize: 9, padding: "2px 7px", borderRadius: 10, fontWeight: 400
-          }}>{post.cuisine}</div>
-        )}
-        <div style={{ flex: 1 }} />
+      {/* Text card when no image */}
+      {!hasImage && (
         <div style={{
-          display: "inline-flex", alignItems: "center", gap: 3,
-          background: "rgba(255,255,255,0.18)",
-          backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
-          border: "1px solid rgba(255,255,255,0.28)",
-          borderRadius: 20, padding: "3px 8px 3px 5px", maxWidth: "100%"
+          position: "absolute", inset: 0,
+          display: "flex", flexDirection: "column",
+          padding: "12px 10px", justifyContent: "space-between"
         }}>
-          <span style={{ fontSize: 9, flexShrink: 0 }}>📍</span>
-          <span style={{
-            color: "#fff", fontSize: 10, fontWeight: 500,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-            textShadow: "0 1px 3px rgba(0,0,0,0.4)"
-          }}>{post.name}</span>
+          {/* Top: cuisine + date */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+            {post.cuisine ? (
+              <span style={{ background: "#f0ebe5", color: "#8B6914", fontSize: 9, padding: "2px 7px", borderRadius: 10, fontWeight: 500 }}>{post.cuisine}</span>
+            ) : <span />}
+            <span style={{ fontSize: 9, color: "#ccc" }}>{post.date}</span>
+          </div>
+
+          {/* Middle: store name */}
+          <div style={{ flex: 1, display: "flex", alignItems: "center", padding: "8px 0" }}>
+            <div style={{ fontSize: 13, fontWeight: 500, color: "#1a1a1a", lineHeight: 1.5, wordBreak: "break-all" }}>
+              {post.name}
+            </div>
+          </div>
+
+          {/* Bottom: district tag */}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span style={{ fontSize: 9 }}>📍</span>
+            <span style={{ fontSize: 10, color: "#aaa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {post.address || post.district}
+            </span>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Overlay name tag for image cards */}
+      {hasImage && (
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(transparent 45%, rgba(0,0,0,0.65) 100%)",
+          display: "flex", flexDirection: "column", justifyContent: "space-between",
+          padding: "8px 7px"
+        }}>
+          {post.cuisine && (
+            <div style={{ alignSelf: "flex-start", background: "rgba(0,0,0,0.28)", color: "#fff", fontSize: 9, padding: "2px 7px", borderRadius: 10 }}>{post.cuisine}</div>
+          )}
+          <div style={{ flex: 1 }} />
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 3,
+            background: "rgba(255,255,255,0.18)", backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)",
+            border: "1px solid rgba(255,255,255,0.28)", borderRadius: 20,
+            padding: "3px 8px 3px 5px", maxWidth: "100%"
+          }}>
+            <span style={{ fontSize: 9, flexShrink: 0 }}>📍</span>
+            <span style={{ color: "#fff", fontSize: 10, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>{post.name}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

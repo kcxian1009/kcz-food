@@ -60,6 +60,33 @@ function classifyPost(tags) {
       return { city: "宅配吃痣", district: "甜點類" };
     }
   }
+
+  // 備用：XX美食 / XX小吃 / XX餐廳 / XX必吃 等標籤
+  const FOOD_KEYWORDS = ["美食", "小吃", "餐廳", "夜市", "必吃", "推薦", "吃貨", "美食地圖"];
+  for (const tag of tags) {
+    for (const keyword of FOOD_KEYWORDS) {
+      if (tag.includes(keyword)) {
+        for (const city of TAIWAN_CITIES) {
+          if (tag.startsWith(city)) {
+            return { city: `${city}吃痣`, district: "其他" };
+          }
+        }
+        for (const [place, cityKey] of Object.entries(OVERSEAS_CITIES)) {
+          if (tag.includes(place)) return { city: cityKey, district: place };
+        }
+      }
+    }
+  }
+
+  // 最後備用：純縣市標籤（#屏東 #高雄）
+  for (const tag of tags) {
+    for (const city of TAIWAN_CITIES) {
+      if (tag === city || tag === `${city}市` || tag === `${city}縣`) {
+        return { city: `${city}吃痣`, district: "其他" };
+      }
+    }
+  }
+
   return null;
 }
 
@@ -90,34 +117,53 @@ function extractStoreName(caption) {
   if (!caption) return "未命名";
   const lines = caption.split("\n");
 
-  // 格式1: INFORMATION 區塊後的第一行通常是店名
+  // 格式1: INFORMATION 區塊後第一行，抓非hashtag的文字
+  // 例: "#本炙所 #板前燒肉 #MEATSOLO 高雄裕誠店" → "高雄裕誠店"
+  // 或整行就是店名
   const infoIdx = lines.findIndex(l =>
-    l.includes("INFORMATION") || l.includes("information") || l.includes("I N F O")
+    l.includes("INFORMATION") || l.includes("I N F O") || l.includes("information")
   );
   if (infoIdx !== -1) {
-    for (let i = infoIdx + 1; i < Math.min(infoIdx + 4, lines.length); i++) {
-      const candidate = lines[i].replace(/^[-\s📍✔✅■▪•]+/, "").trim();
-      if (candidate.length > 1 && candidate.length < 50 && !candidate.startsWith("#") && !candidate.match(/^\d/)) {
-        return candidate;
+    for (let i = infoIdx + 1; i < Math.min(infoIdx + 5, lines.length); i++) {
+      const line = lines[i].trim();
+      if (!line || line.startsWith("高雄市") || line.startsWith("台") || line.match(/^\d{2}/)) continue;
+
+      // 移除所有 hashtag，留下純文字店名
+      const withoutTags = line.replace(/#[\u4e00-\u9fa5a-zA-Z0-9_]+/g, "").trim();
+      // 移除 @ 帳號
+      const withoutAt = withoutTags.replace(/@[\w.]+/g, "").trim();
+      // 清理多餘空格
+      const clean = withoutAt.replace(/\s+/g, " ").trim();
+
+      if (clean.length > 1 && clean.length < 40 && !clean.startsWith("#")) {
+        return clean;
+      }
+      // 如果去掉 hashtag 後沒剩下，嘗試抓第一個 hashtag 的文字作為店名
+      if (!clean && line.includes("#")) {
+        const firstTag = line.match(/#([\u4e00-\u9fa5a-zA-Z0-9]+)/);
+        if (firstTag && firstTag[1].length > 1) return firstTag[1];
       }
     }
   }
 
-  // 格式2: 「欸今天吃｜店名」or 含有｜的第一行取後半
+  // 格式2: 「欸今天吃｜店名」
   const firstLine = lines[0] || "";
-  const pipeMatch = firstLine.match(/[｜|]\s*([^|｜]+?)(?:\s*[|｜]|$)/);
+  const pipeMatch = firstLine.match(/[｜|]\s*([^|｜\n]{2,30}?)(?:\s*[|｜]|$)/);
   if (pipeMatch) {
     const name = pipeMatch[1].trim();
-    // 排除純地名 (高雄 前鎮區 之類)
-    if (name.length > 1 && name.length < 40 && !name.match(/^(高雄|台南|台中|台北|屏東|嘉義|新北|桃園).*(區|市)$/)) {
+    if (!name.match(/^(高雄|台南|台中|台北|屏東|嘉義|新北).*(區|市)$/)) {
       return name;
     }
   }
 
-  // 格式3: 找第一行不是地名、不是 hashtag 的內容
-  for (const line of lines) {
-    const clean = line.replace(/^[KAOHSIUNG|｜|✔✅📍🍽️🔥💬■▪•\-\s]+/, "").trim();
-    if (clean.length > 2 && clean.length < 50 && !clean.startsWith("#") && !clean.match(/^(高雄|台南|台中|台北).*(區|市)/)) {
+  // 格式3: 第一行去除地名和特殊符號
+  for (const line of lines.slice(0, 3)) {
+    const clean = line
+      .replace(/^[KAOHSIUNG|｜|✔✅📍🍽️🔥💬■▪•\-\s]+/, "")
+      .replace(/#[\u4e00-\u9fa5a-zA-Z0-9_]+/g, "")
+      .trim();
+    if (clean.length > 2 && clean.length < 50 &&
+        !clean.match(/^(高雄|台南|台中|台北).*(區|市)/)) {
       return clean;
     }
   }
@@ -181,7 +227,7 @@ async function fetchCommentTags(mediaId) {
 // 主程式：抓所有貼文
 async function fetchAllPosts() {
   const results = [];
-  let url = `${BASE}/me/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count&limit=100&access_token=${TOKEN}`;
+  let url = `${BASE}/me/media?fields=id,caption,media_type,media_url,thumbnail_url,timestamp,like_count,permalink&limit=100&access_token=${TOKEN}`;
   let page = 1;
 
   console.log("開始抓取 IG 貼文...");
@@ -217,7 +263,7 @@ async function fetchAllPosts() {
         caption: (post.caption || "").substring(0, 300),
         items: extractItems(post.caption),
         tags: allTags.filter(t => t.includes("吃痣") || t.includes("美食")).slice(0, 5).map(t => `#${t}`),
-        igLink: `https://www.instagram.com/p/${igPostId}/`,
+        igLink: post.permalink || `https://www.instagram.com/p/${igPostId}/`,
         date: (post.timestamp || "").substring(0, 10),
         imageUrl: imageUrl || "",
         likes: post.like_count || 0,
