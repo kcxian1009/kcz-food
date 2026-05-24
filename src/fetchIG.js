@@ -175,10 +175,27 @@ function extractStoreName(caption) {
 function extractAddress(caption) {
   if (!caption) return "";
   const lines = caption.split("\n");
+
+  // 找 INFORMATION 區塊後的地址行
+  const infoIdx = lines.findIndex(l =>
+    l.includes("INFORMATION") || l.includes("I N F O") || l.includes("information")
+  );
+  if (infoIdx !== -1) {
+    for (let i = infoIdx + 1; i < Math.min(infoIdx + 6, lines.length); i++) {
+      const line = lines[i].trim();
+      if ((line.includes("市") || line.includes("縣")) &&
+          (line.includes("路") || line.includes("街") || line.includes("號") || line.includes("巷"))) {
+        return line.replace(/^[📍地址：:\s]+/, "").trim();
+      }
+    }
+  }
+
+  // 全文搜尋地址格式
   for (const line of lines) {
     if ((line.includes("市") || line.includes("縣")) &&
-        (line.includes("路") || line.includes("街") || line.includes("號") || line.includes("巷"))) {
-      return line.replace(/[📍地址：:addr\s]/gi, "").trim();
+        (line.includes("路") || line.includes("街") || line.includes("號") || line.includes("巷")) &&
+        line.length < 60) {
+      return line.replace(/^[📍地址：:\s]+/, "").trim();
     }
   }
   return "";
@@ -188,26 +205,43 @@ function extractAddress(caption) {
 function extractHours(caption) {
   if (!caption) return "";
   const lines = caption.split("\n");
-  for (const line of lines) {
-    if (line.match(/\d{1,2}:\d{2}/) && (line.includes("～") || line.includes("~") || line.includes("-"))) {
-      return line.replace(/[🕐⏰時間營業：:\s]/g, "").trim();
+
+  const infoIdx = lines.findIndex(l =>
+    l.includes("INFORMATION") || l.includes("I N F O") || l.includes("information")
+  );
+  const searchLines = infoIdx !== -1 ? lines.slice(infoIdx) : lines;
+
+  for (const line of searchLines) {
+    if (line.match(/\d{1,2}:\d{2}/) && (line.includes("～") || line.includes("~") || line.includes("-") || line.includes("至"))) {
+      return line.replace(/^[🕐⏰時間營業：:\s]+/, "").trim();
     }
   }
   return "";
 }
 
-// 從 caption 解析推薦菜色（含價格的行）
+// 從 caption 解析餐點（有✔或價格的行）
 function extractItems(caption) {
   if (!caption) return [];
   const lines = caption.split("\n");
   const items = [];
+
   for (const line of lines) {
-    if ((line.includes("$") || line.includes("元") || line.includes("NT")) && line.length < 50) {
-      const clean = line.replace(/^[✔✅▪•\-\s]+/, "").trim();
-      if (clean) items.push(clean);
+    // 有 ✔ 符號的行通常是推薦餐點
+    const hasCheck = line.includes("✔") || line.includes("✅") || line.includes("☑");
+    // 有價格的行
+    const hasPrice = line.includes("$") || line.includes("元") || (line.includes("NT") && line.match(/\d/));
+
+    if ((hasCheck || hasPrice) && line.length < 80) {
+      const clean = line
+        .replace(/^[✔✅☑▪•\-\s]+/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (clean.length > 2 && !clean.startsWith("#")) {
+        items.push(clean);
+      }
     }
   }
-  return items.slice(0, 5);
+  return items.slice(0, 6);
 }
 
 // 抓某篇貼文的留言標籤

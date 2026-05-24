@@ -122,46 +122,60 @@ function PostModal({ post, onClose }) {
           </div>
         </div>
         <div style={{ padding: "18px 20px 22px" }}>
-          <h2 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 500 }}>{post.name}</h2>
+          {/* Clean store name - remove KAOHSIUNG prefix */}
+          <h2 style={{ margin: "0 0 6px", fontSize: 18, fontWeight: 500 }}>{
+            post.name
+              .replace(/^[◆♦]?[A-Z\s]*[|｜]/, "")
+              .replace(/^(高雄|台南|台中|台北|屏東|嘉義|新北|桃園)[^\s|｜]*[|｜]\s*/, "")
+              .trim() || post.name
+          }</h2>
 
-          {/* Address row with optional map link */}
+          {/* Address + Google Maps */}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <p style={{ margin: 0, fontSize: 13, color: "#888", flex: 1 }}>📍 {post.address}</p>
-            {mapsUrl && (
-              <a href={mapsUrl} target="_blank" rel="noopener"
-                onClick={e => e.stopPropagation()}
-                style={{
-                  flexShrink: 0,
-                  display: "flex", alignItems: "center", gap: 5,
-                  background: "#f0f7ff", color: "#1a73e8",
-                  textDecoration: "none", padding: "5px 11px",
-                  borderRadius: 20, fontSize: 12, fontWeight: 500,
-                  border: "1px solid #d0e8ff",
-                  whiteSpace: "nowrap"
-                }}>
-                <span style={{ fontSize: 14 }}>🗺️</span> Google Maps
-              </a>
-            )}
+            <p style={{ margin: 0, fontSize: 13, color: "#888", flex: 1 }}>
+              📍 {post.address || `${post.city} ${post.district}`}
+            </p>
+            {(() => {
+              const addr = post.address || "";
+              const name = post.name || "";
+              if (NO_MAP_KEYWORDS.some(k => addr.includes(k))) return null;
+              const query = encodeURIComponent(`${name} ${addr}`.trim());
+              const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+              return (
+                <a href={url} target="_blank" rel="noopener"
+                  onClick={e => e.stopPropagation()}
+                  style={{
+                    flexShrink: 0, display: "flex", alignItems: "center", gap: 5,
+                    background: "#f0f7ff", color: "#1a73e8",
+                    textDecoration: "none", padding: "5px 11px",
+                    borderRadius: 20, fontSize: 12, fontWeight: 500,
+                    border: "1px solid #d0e8ff", whiteSpace: "nowrap"
+                  }}>
+                  <span style={{ fontSize: 14 }}>🗺️</span> Google Maps
+                </a>
+              );
+            })()}
           </div>
 
           {post.hours && <p style={{ margin: "0 0 12px", fontSize: 12, color: "#aaa" }}>🕐 {post.hours}</p>}
-          <p style={{ margin: "0 0 14px", fontSize: 14, color: "#444", lineHeight: 1.7 }}>{
-            // Clean caption: remove KAOHSIUNG|地名| prefix and trim
-            (post.caption || "")
-              .replace(/^[A-Z|｜\s]*[高台屏嘉新桃花宜苗彰雲南投澎金基]\S*[區市|｜]\s*/g, "")
-              .replace(/^KAOHSIUNG[^\n]*/i, "")
-              .trim()
-              .substring(0, 200)
-          }</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
-            {post.items.map((it, i) => <span key={i} style={{ background: "#f8f4f0", color: "#8B6914", fontSize: 12, padding: "5px 12px", borderRadius: 20, fontWeight: 400 }}>{it}</span>)}
-          </div>
+
+          {/* Menu items only - no caption text */}
+          {post.items && post.items.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <p style={{ margin: "0 0 8px", fontSize: 12, color: "#bbb", fontWeight: 500 }}>點了什麼</p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {post.items.map((it, i) => (
+                  <span key={i} style={{ background: "#f8f4f0", color: "#8B6914", fontSize: 12, padding: "5px 12px", borderRadius: 20, fontWeight: 400 }}>{it}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 16 }}>
             {post.tags.map((t, i) => <span key={i} style={{ color: "#3897f0", fontSize: 12, fontWeight: 400 }}>{t}</span>)}
           </div>
           <a href={post.igLink} target="_blank" rel="noopener" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "linear-gradient(135deg, #833AB4, #E1306C, #F77737)", color: "#fff", textDecoration: "none", padding: "12px 0", borderRadius: 12, fontSize: 14, fontWeight: 500 }}>📸 前往 Instagram 看完整貼文</a>
 
-          {/* Bottom close button for easy thumb reach on mobile */}
           <button onClick={onClose} style={{ width: "100%", marginTop: 10, padding: "11px 0", borderRadius: 12, border: "1px solid #eee", background: "#fafafa", color: "#aaa", fontSize: 13, fontWeight: 400, cursor: "pointer", fontFamily: "'Noto Sans TC'" }}>關閉</button>
         </div>
       </div>
