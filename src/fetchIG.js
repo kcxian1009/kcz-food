@@ -88,25 +88,38 @@ function extractTags(text) {
 // 從 caption 解析店名（第一行）
 function extractStoreName(caption) {
   if (!caption) return "未命名";
-  const firstLine = caption.split("\n")[0];
+  const lines = caption.split("\n");
 
-  // 格式1: 「欸今天吃｜店名 說明」or「欸今天吃 | 店名」
-  const pipeMatch = firstLine.match(/[｜|]\s*(.+?)(?:\s{2}|$)/);
-  if (pipeMatch) {
-    const name = pipeMatch[1].trim();
-    if (name.length > 1 && name.length < 40) return name;
+  // 格式1: INFORMATION 區塊後的第一行通常是店名
+  const infoIdx = lines.findIndex(l =>
+    l.includes("INFORMATION") || l.includes("information") || l.includes("I N F O")
+  );
+  if (infoIdx !== -1) {
+    for (let i = infoIdx + 1; i < Math.min(infoIdx + 4, lines.length); i++) {
+      const candidate = lines[i].replace(/^[-\s📍✔✅■▪•]+/, "").trim();
+      if (candidate.length > 1 && candidate.length < 50 && !candidate.startsWith("#") && !candidate.match(/^\d/)) {
+        return candidate;
+      }
+    }
   }
 
-  // 格式2: 第一行直接是店名（去除 emoji 和符號）
-  const clean = firstLine.replace(/^[欸今天吃✔✅📍🍽️🔥💬■▪•✓\-\s]+/, "").trim();
-  if (clean.length > 1 && clean.length < 50 && !clean.startsWith("#")) return clean;
+  // 格式2: 「欸今天吃｜店名」or 含有｜的第一行取後半
+  const firstLine = lines[0] || "";
+  const pipeMatch = firstLine.match(/[｜|]\s*([^|｜]+?)(?:\s*[|｜]|$)/);
+  if (pipeMatch) {
+    const name = pipeMatch[1].trim();
+    // 排除純地名 (高雄 前鎮區 之類)
+    if (name.length > 1 && name.length < 40 && !name.match(/^(高雄|台南|台中|台北|屏東|嘉義|新北|桃園).*(區|市)$/)) {
+      return name;
+    }
+  }
 
-  // 格式3: 找 INFORMATION 區塊後的第一行（通常是店名）
-  const lines = caption.split("\n");
-  const infoIdx = lines.findIndex(l => l.includes("INFORMATION") || l.includes("information"));
-  if (infoIdx !== -1 && lines[infoIdx + 1]) {
-    const infoName = lines[infoIdx + 1].replace(/^[✔✅📍🍽️🔥💬■▪•\-\s]+/, "").trim();
-    if (infoName.length > 1 && !infoName.startsWith("#")) return infoName;
+  // 格式3: 找第一行不是地名、不是 hashtag 的內容
+  for (const line of lines) {
+    const clean = line.replace(/^[KAOHSIUNG|｜|✔✅📍🍽️🔥💬■▪•\-\s]+/, "").trim();
+    if (clean.length > 2 && clean.length < 50 && !clean.startsWith("#") && !clean.match(/^(高雄|台南|台中|台北).*(區|市)/)) {
+      return clean;
+    }
   }
 
   return "未命名";
