@@ -85,8 +85,12 @@ const NO_MAP_KEYWORDS = ["宅配全台", "產地直送", "線上訂購", "線上
 function getMapsUrl(name, address) {
   if (!address) return null;
   if (NO_MAP_KEYWORDS.some(k => address.includes(k))) return null;
-  const query = encodeURIComponent(`${name} ${address}`);
-  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+  try {
+    const query = encodeURIComponent(`${name} ${address}`);
+    return `https://www.google.com/maps/search/?api=1&query=${query}`;
+  } catch {
+    return null;
+  }
 }
 
 function PostModal({ post, onClose }) {

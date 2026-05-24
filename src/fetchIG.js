@@ -88,11 +88,27 @@ function extractTags(text) {
 // 從 caption 解析店名（第一行）
 function extractStoreName(caption) {
   if (!caption) return "未命名";
-  const lines = caption.split("\n");
-  for (const line of lines) {
-    const clean = line.replace(/^[✔✅📍🍽️🔥💬■▪•\-\s]+/, "").trim();
-    if (clean.length > 2 && !clean.startsWith("#")) return clean;
+  const firstLine = caption.split("\n")[0];
+
+  // 格式1: 「欸今天吃｜店名 說明」or「欸今天吃 | 店名」
+  const pipeMatch = firstLine.match(/[｜|]\s*(.+?)(?:\s{2}|$)/);
+  if (pipeMatch) {
+    const name = pipeMatch[1].trim();
+    if (name.length > 1 && name.length < 40) return name;
   }
+
+  // 格式2: 第一行直接是店名（去除 emoji 和符號）
+  const clean = firstLine.replace(/^[欸今天吃✔✅📍🍽️🔥💬■▪•✓\-\s]+/, "").trim();
+  if (clean.length > 1 && clean.length < 50 && !clean.startsWith("#")) return clean;
+
+  // 格式3: 找 INFORMATION 區塊後的第一行（通常是店名）
+  const lines = caption.split("\n");
+  const infoIdx = lines.findIndex(l => l.includes("INFORMATION") || l.includes("information"));
+  if (infoIdx !== -1 && lines[infoIdx + 1]) {
+    const infoName = lines[infoIdx + 1].replace(/^[✔✅📍🍽️🔥💬■▪•\-\s]+/, "").trim();
+    if (infoName.length > 1 && !infoName.startsWith("#")) return infoName;
+  }
+
   return "未命名";
 }
 
