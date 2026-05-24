@@ -137,23 +137,31 @@ function PostModal({ post, onClose }) {
             </p>
             {(() => {
               const addr = post.address || "";
-              const name = post.name || "";
               if (NO_MAP_KEYWORDS.some(k => addr.includes(k))) return null;
-              const query = encodeURIComponent(`${name} ${addr}`.trim());
-              const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
-              return (
-                <a href={url} target="_blank" rel="noopener"
-                  onClick={e => e.stopPropagation()}
-                  style={{
-                    flexShrink: 0, display: "flex", alignItems: "center", gap: 5,
-                    background: "#f0f7ff", color: "#1a73e8",
-                    textDecoration: "none", padding: "5px 11px",
-                    borderRadius: 20, fontSize: 12, fontWeight: 500,
-                    border: "1px solid #d0e8ff", whiteSpace: "nowrap"
-                  }}>
-                  <span style={{ fontSize: 14 }}>🗺️</span> Google Maps
-                </a>
-              );
+              // Clean store name before encoding - remove special chars
+              const cleanName = (post.name || "")
+                .replace(/^[◆♦❖]?[A-Z\s|｜]*/, "")
+                .replace(/[高台屏嘉新桃花宜苗彰雲南投澎金基]\S*[區市|｜]\s*/g, "")
+                .trim();
+              const searchQuery = `${cleanName} ${addr}`.trim();
+              if (!searchQuery) return null;
+              try {
+                const query = encodeURIComponent(searchQuery);
+                const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
+                return (
+                  <a href={url} target="_blank" rel="noopener"
+                    onClick={e => e.stopPropagation()}
+                    style={{
+                      flexShrink: 0, display: "flex", alignItems: "center", gap: 5,
+                      background: "#f0f7ff", color: "#1a73e8",
+                      textDecoration: "none", padding: "5px 11px",
+                      borderRadius: 20, fontSize: 12, fontWeight: 500,
+                      border: "1px solid #d0e8ff", whiteSpace: "nowrap"
+                    }}>
+                    <span style={{ fontSize: 14 }}>🗺️</span> Google Maps
+                  </a>
+                );
+              } catch { return null; }
             })()}
           </div>
 
@@ -219,7 +227,7 @@ function GridCell({ post, onClick, index }) {
       {hasImage && (
         <img src={post.imageUrl} alt={post.name} loading="lazy"
           onError={() => setImgError(true)}
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 20%" }} />
       )}
 
       {/* Text card when no image */}
@@ -273,7 +281,12 @@ function GridCell({ post, onClick, index }) {
             padding: "3px 8px 3px 5px", maxWidth: "100%"
           }}>
             <span style={{ fontSize: 9, flexShrink: 0 }}>📍</span>
-            <span style={{ color: "#fff", fontSize: 10, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>{post.name}</span>
+            <span style={{ color: "#fff", fontSize: 10, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>{
+              (post.name || "")
+                .replace(/^[◆♦❖]?[A-Z\s|｜]+/, "")
+                .replace(/^(高雄|台南|台中|台北|屏東|嘉義|新北|桃園)[^|｜]*[|｜]\s*/g, "")
+                .trim() || post.name
+            }</span>
           </div>
         </div>
       )}
