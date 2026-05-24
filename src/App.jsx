@@ -1,37 +1,43 @@
 import { useState, useEffect } from "react";
+import RAW_IG_DATA from "./igData.json";
 
-const FOOD_IMAGES = [
-  "https://images.unsplash.com/photo-1555949258-eb67b1ef0ceb?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1552611052-33e04de1b100?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1585032226651-759b368d7246?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1617196034796-73dfa7b1fd56?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1583032015879-e5022cb87c3b?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1574484284002-952d92456975?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1499028344343-cd173ffc68a9?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1432139509613-5c4255a1d230?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1484723091739-30a097e8f929?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1606787366850-de6330128bfc?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1455619452474-d2be8b1e70cd?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1553621042-f6e147245754?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1590301157890-4810ed352733?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1617093727343-374698b1b08d?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1580822184713-fc5400e7fe10?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1498654896293-37aacf113fd9?w=400&h=400&fit=crop",
-  "https://images.unsplash.com/photo-1559847844-5315695dadae?w=400&h=400&fit=crop",
-];
+// City display config (color + category) - keeps design info separate from IG data
+const CITY_CONFIG = {
+  "高雄吃痣": { color: "#E85D3A", category: "taiwan" },
+  "台南吃痣": { color: "#D4A259", category: "taiwan" },
+  "台中吃痣": { color: "#4A9B7F", category: "taiwan" },
+  "台北吃痣": { color: "#6B5CE7", category: "taiwan" },
+  "新北吃痣": { color: "#5B8DB8", category: "taiwan" },
+  "桃園吃痣": { color: "#7B9E6B", category: "taiwan" },
+  "新竹吃痣": { color: "#A07850", category: "taiwan" },
+  "苗栗吃痣": { color: "#8B7355", category: "taiwan" },
+  "彰化吃痣": { color: "#C07840", category: "taiwan" },
+  "雲林吃痣": { color: "#7A9E7E", category: "taiwan" },
+  "嘉義吃痣": { color: "#C8944A", category: "taiwan" },
+  "屏東吃痣": { color: "#6BAA75", category: "taiwan" },
+  "宜蘭吃痣": { color: "#5B9EA0", category: "taiwan" },
+  "花蓮吃痣": { color: "#4A7FA5", category: "taiwan" },
+  "台東吃痣": { color: "#6B8E6B", category: "taiwan" },
+  "澎湖吃痣": { color: "#4A9B9B", category: "taiwan" },
+  "金門吃痣": { color: "#A08040", category: "taiwan" },
+  "基隆吃痣": { color: "#607080", category: "taiwan" },
+  "南投吃痣": { color: "#7A9060", category: "taiwan" },
+  "韓國吃痣": { color: "#2E86AB", category: "overseas" },
+  "日本吃痣": { color: "#C23B22", category: "overseas" },
+  "宅配吃痣": { color: "#8B6914", category: "delivery" },
+};
+const DEFAULT_CONFIG = { color: "#999999", category: "taiwan" };
+
+// Merge IG data with display config
+const MOCK_DATA = Object.fromEntries(
+  Object.entries(RAW_IG_DATA).map(([city, districts]) => [
+    city,
+    {
+      ...(CITY_CONFIG[city] || DEFAULT_CONFIG),
+      districts,
+    }
+  ])
+);
 
 // Each post now has a "cuisine" field for category filtering
 const MOCK_DATA = {
@@ -187,7 +193,10 @@ const MOCK_DATA = {
   },
 };
 
-const TOTAL_POSTS = 1156;
+// Total posts count from real IG data
+const TOTAL_POSTS = Object.values(MOCK_DATA).reduce((sum, city) =>
+  sum + Object.values(city.districts).reduce((s, posts) => s + posts.length, 0), 0
+) || 1156;
 
 // Geographic order S→N for each city's districts (index = south to north priority)
 const DISTRICT_GEO_ORDER = {
@@ -240,7 +249,7 @@ function PostModal({ post, onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, backdropFilter: "blur(4px)", animation: "fadeIn 0.2s ease" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, maxWidth: 480, width: "100%", maxHeight: "85vh", overflow: "auto", animation: "slideUp 0.3s ease" }}>
         <div style={{ position: "relative" }}>
-          <img src={FOOD_IMAGES[post.img % FOOD_IMAGES.length]} alt="" crossOrigin="anonymous"
+          <img src={post.imageUrl || ""} alt={post.name}
             style={{ width: "100%", aspectRatio: "4/5", objectFit: "cover", borderRadius: "16px 16px 0 0", display: "block" }} />
           <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, width: 34, height: 34, borderRadius: "50%", background: "rgba(0,0,0,0.5)", border: "none", color: "#fff", fontSize: 16, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
           <div style={{ position: "absolute", bottom: 12, left: 12, display: "flex", gap: 6 }}>
@@ -295,7 +304,7 @@ function GridCell({ post, onClick, index }) {
   return (
     <div onClick={() => onClick(post)} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{ position: "relative", paddingBottom: "125%", cursor: "pointer", overflow: "hidden", background: "#f0ebe5", animation: `fadeIn 0.35s ease ${Math.min(index * 0.03, 0.4)}s both` }}>
-      <img src={FOOD_IMAGES[post.img % FOOD_IMAGES.length]} alt={post.name} loading="lazy" onLoad={() => setLoaded(true)}
+      <img src={post.imageUrl || ""} alt={post.name} loading="lazy" onLoad={() => setLoaded(true)}
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: loaded ? 1 : 0, transition: "opacity 0.4s, transform 0.3s", transform: hover ? "scale(1.04)" : "scale(1)" }} />
 
       {/* Always-visible gradient + name tag at bottom */}
